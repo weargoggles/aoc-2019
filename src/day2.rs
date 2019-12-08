@@ -38,8 +38,7 @@ fn main() -> Result<(), std::io::Error> {
     Ok(())
 }
 
-fn run(input: Vec<usize>) -> Vec<usize> {
-    let mut memory = input.clone();
+fn run(mut memory: Vec<usize>) -> Vec<usize> {
     let mut i = 0; // the instruction pointer
     loop {
         match memory[i] {
