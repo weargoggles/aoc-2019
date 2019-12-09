@@ -99,6 +99,54 @@ fn test_always_increasing() {
     assert!(!rule.validate(&1232.into()));
 }
 
+struct AtLeastOneGroupOfLength(usize);
+
+impl AtLeastOneGroupOfLength {
+    fn groups(input: &Password) -> Vec<Vec<i32>> {
+        let mut groups: Vec<Vec<i32>> = Vec::new();
+        let mut group: Vec<i32> = Vec::new();
+        for a in input.iter() {
+            if !group.is_empty() && a != group.last().unwrap() {
+                groups.push(group);
+                group = Vec::new();
+            }
+            group.push(*a);
+        }
+        groups.push(group);
+        groups
+    }
+}
+
+#[test]
+fn test_groups() {
+    assert_eq!(
+        AtLeastOneGroupOfLength::groups(&1234.into()),
+        vec![vec![1i32], vec![2], vec![3], vec![4]]
+    );
+}
+
+impl PasswordRule for AtLeastOneGroupOfLength {
+    fn validate(&self, input: &Password) -> bool {
+        let groups = AtLeastOneGroupOfLength::groups(input);
+        groups.iter().any(|g| g.len() == self.0)
+    }
+}
+
+#[test]
+fn test_at_least_one_group_of_length() {
+    let two = AtLeastOneGroupOfLength(2);
+    let five = AtLeastOneGroupOfLength(5);
+
+    assert!(two.validate(&1223.into()));
+    assert!(!two.validate(&1234.into()));
+    assert!(two.validate(&112233.into()));
+    assert!(!two.validate(&123444.into()));
+    assert!(two.validate(&111122.into()));
+
+    assert!(five.validate(&1222223.into()));
+    assert!(!five.validate(&12222223.into()));
+}
+
 fn main() {
     let rules: Vec<Box<dyn PasswordRule>> = vec![
         Box::new(TwoAdjacentIdenticalDigits {}),
@@ -106,10 +154,23 @@ fn main() {
         Box::new(AlwaysIncreasing {}),
     ];
     println!(
-        "matching passwords: {}",
+        "passwords matching initial rules: {}",
         (357253..892942)
             .map(Password::from)
             .filter(|v| rules.iter().all(|r| r.validate(v)))
+            .count()
+    );
+
+    let part_two_rules: Vec<Box<dyn PasswordRule>> = vec![
+        Box::new(NumDigits(6)),
+        Box::new(AlwaysIncreasing {}),
+        Box::new(AtLeastOneGroupOfLength(2)),
+    ];
+    println!(
+        "passwords matching new rules: {}",
+        (357253..892942)
+            .map(Password::from)
+            .filter(|v| part_two_rules.iter().all(|r| r.validate(v)))
             .count()
     );
 }
