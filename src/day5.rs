@@ -1,7 +1,5 @@
 use std::convert::TryInto;
-use std::fs;
 use std::io;
-use std::io::BufRead;
 use std::str::FromStr;
 
 mod intcode;
@@ -12,7 +10,7 @@ fn main() -> std::io::Result<()> {
         memory: Vec::new(),
         instruction_pointer: 0,
     });
-    let output = machine.run(program);
+    machine.run(program);
     Ok(())
 }
 
@@ -70,7 +68,7 @@ impl DayFiveMachine {
         self.instruction_pointer = self.instruction_pointer + 4;
     }
 
-    fn input(&mut self, opcode: i32) {
+    fn input(&mut self) {
         let mut input = String::new();
         let destination = self.memory[self.instruction_pointer + 1];
         println!("Input: ");
@@ -84,7 +82,7 @@ impl DayFiveMachine {
         self.instruction_pointer = self.instruction_pointer + 2;
     }
 
-    fn output(&mut self, opcode: i32) {
+    fn output(&mut self) {
         let a = self.load_parameter(1);
         println!("Output: {}", a);
         self.instruction_pointer = self.instruction_pointer + 2;
@@ -151,12 +149,10 @@ impl intcode::Machine for DayFiveMachine {
         self.memory = program;
         loop {
             match self.memory[self.instruction_pointer] % 100 {
-                1 => {
-                    self.add(self.memory[self.instruction_pointer]);
-                }
+                1 => self.add(self.memory[self.instruction_pointer]),
                 2 => self.mul(self.memory[self.instruction_pointer]),
-                3 => self.input(self.memory[self.instruction_pointer]),
-                4 => self.output(self.memory[self.instruction_pointer]),
+                3 => self.input(),
+                4 => self.output(),
                 5 => self.jump_if_true(),
                 6 => self.jump_if_false(),
                 7 => self.less_than(),
