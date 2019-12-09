@@ -12,15 +12,12 @@ libmath = "0.2.1"
 [[bin]]
 name = "day1"
 path = "src/day1.rs"
-src = "src/day1.rs"
 
 
 [[bin]]
 name = "day2"
 path = "src/day2.rs"
-src = "src/day2.rs"
 
 [[bin]]
 name = "day3"
 path = "src/day3.rs"
-src = "src/day3.rs"

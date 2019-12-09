@@ -109,13 +109,13 @@ fn main() -> Result<(), std::io::Error> {
     println!("path lengths: {}, {}", first.len(), second.len());
 
     let mut shared: Vec<Point> = first_set.intersection(&second_set).cloned().collect();
-    // {
-    //     // if it loops back around to the origin (0, 0) might appear again
-    //     let origin = shared.iter().position(|i| i == &Point { x: 0, y: 0 });
-    //     if origin.is_some() {
-    //         shared.remove(origin.unwrap());
-    //     }
-    // };
+    {
+        // if it loops back around to the origin (0, 0) might appear again
+        let origin = shared.iter().position(|i| i == &Point { x: 0, y: 0 });
+        if origin.is_some() {
+            shared.remove(origin.unwrap());
+        }
+    };
     shared.sort_by(|p, q| (p.manhattan()).cmp(&q.manhattan()));
     println!(
         "First and last: {:?} (distance {}), {:?} (distance {})",
