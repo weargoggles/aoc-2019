@@ -2,14 +2,32 @@ use std::collections::HashMap;
 use std::fs;
 use std::io;
 use std::io::BufRead;
+use std::rc::Rc;
 
 fn main() -> io::Result<()> {
     let f = fs::File::open("data/day6.txt")?;
     let reader = io::BufReader::new(f);
-    let orbits = read_orbits(reader);
+    let orbits = Rc::new(read_orbits(reader));
 
-    let checksum = count_orbits(orbits);
+    let checksum = count_orbits(orbits.clone());
     println!("Orbits: {}", checksum);
+    let mut you_chain = chain_for(orbits.clone(), "YOU".to_string());
+    you_chain.reverse();
+    let mut san_chain = chain_for(orbits.clone(), "SAN".to_string());
+    san_chain.reverse();
+
+    println!("y: {:?}, s: {:?}", you_chain.last(), san_chain.last());
+    let mut counter = 0;
+    for (y, s) in you_chain.iter().zip(san_chain.iter()) {
+        counter = counter + 1;
+        if y != s {
+            println!(
+                "hops: {}",
+                (you_chain.len() - 1 - counter) + (san_chain.len() - 1 - counter)
+            );
+            break;
+        }
+    }
 
     Ok(())
 }
@@ -25,31 +43,43 @@ fn read_orbits<T: io::Read>(reader: io::BufReader<T>) -> HashMap<String, String>
         .collect()
 }
 
-fn count_orbits(orbits: HashMap<String, String>) -> i32 {
+fn count_orbits(orbits: Rc<HashMap<String, String>>) -> i32 {
     let mut counter = 0;
     for body in orbits.keys() {
         let mut secondary = body;
         loop {
-            println!("In the loop for {}", secondary);
             match orbits.get(secondary) {
                 Some(primary) => {
-                    println!("we have a primary: {}", primary);
                     secondary = primary;
                     counter = counter + 1;
                 }
                 None => break,
             }
         }
-        println!("Done for {}", body);
     }
     counter
+}
+
+fn chain_for(orbits: Rc<HashMap<String, String>>, body: String) -> Vec<String> {
+    let mut chain: Vec<String> = vec![body.clone()];
+    let mut secondary = &body.clone();
+    loop {
+        match orbits.get(secondary) {
+            Some(primary) => {
+                chain.push(secondary.clone());
+                secondary = primary;
+            }
+            None => break,
+        }
+    }
+    chain
 }
 
 #[test]
 fn test_count_orbits() {
     let f = fs::File::open("data/day6-example.txt").unwrap();
     let reader = io::BufReader::new(f);
-    let orbits = read_orbits(reader);
+    let orbits = Rc::new(read_orbits(reader));
 
     let checksum = count_orbits(orbits);
     assert_eq!(checksum, 42);
