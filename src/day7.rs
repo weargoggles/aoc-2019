@@ -1,12 +1,16 @@
+use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::io;
+use std::rc::Rc;
 
 mod intcode;
 
 fn main() -> io::Result<()> {
     let program = intcode::load("data/day7.txt")?;
-    let amplifier = Amplifier { program };
+    let amplifier = Amplifier {
+        program: program.clone(),
+    };
     let max = permutations(5)
         .map(|phase_setting| {
             phase_setting
@@ -15,6 +19,36 @@ fn main() -> io::Result<()> {
         })
         .max();
     println!("maximum is {:?}", max);
+
+    let part_two_max = permutations(5)
+        .map(|phase_setting| {
+            let machines: Vec<Rc<RefCell<DaySevenMachine>>> = phase_setting
+                .iter()
+                .map(|x| x + 5) // range from 5 to 9 now
+                .map(|p| {
+                    let mut machine = DaySevenMachine::new(program.clone());
+                    machine.input_deque.push_back(p.clone().try_into().unwrap());
+                    Rc::new(RefCell::new(machine))
+                })
+                .collect();
+            let mut register: i32 = 0;
+            for machine in machines.iter().cycle() {
+                let mut m = machine.borrow_mut();
+                m.input_deque.push_back(register);
+                match m.run() {
+                    MachineState::Output => {
+                        register = m.output_deque.pop_front().unwrap();
+                    }
+                    MachineState::Finished => {
+                        break;
+                    }
+                    MachineState::Error => panic!("unexpected state"),
+                }
+            }
+            register
+        })
+        .max();
+    println!("Max for part two: {:?}", part_two_max);
     Ok(())
 }
 
@@ -29,7 +63,7 @@ impl Amplifier {
             .input_deque
             .push_back(phase_setting.clone().try_into().unwrap());
         machine.input_deque.push_back(acc);
-        machine.run(self.program.clone());
+        machine.run();
         machine.output_deque.pop_front().unwrap()
     }
 }
@@ -196,56 +230,34 @@ impl DaySevenMachine {
         );
         self.instruction_pointer = self.instruction_pointer + 4
     }
-    fn run(&mut self, program: intcode::ProgramData) -> intcode::ProgramData {
-        self.memory = program;
+    fn run(&mut self) -> MachineState {
         loop {
             match self.memory[self.instruction_pointer] % 100 {
                 1 => self.add(self.memory[self.instruction_pointer]),
                 2 => self.mul(self.memory[self.instruction_pointer]),
                 3 => self.input(),
-                4 => self.output(),
+                4 => {
+                    self.output();
+                    return MachineState::Output;
+                }
                 5 => self.jump_if_true(),
                 6 => self.jump_if_false(),
                 7 => self.less_than(),
                 8 => self.equals(),
                 99 => {
-                    break;
+                    return MachineState::Finished;
                 }
                 _ => {
                     println!("Exception! {}", self.memory[self.instruction_pointer]);
-                    break;
+                    return MachineState::Error;
                 }
             }
         }
-        self.memory.clone()
     }
 }
 
-impl intcode::Machine for DaySevenMachine {
-    fn reset(&mut self) {
-        self.instruction_pointer = 0;
-    }
-    fn run(&mut self, program: intcode::ProgramData) -> intcode::ProgramData {
-        self.memory = program;
-        loop {
-            match self.memory[self.instruction_pointer] % 100 {
-                1 => self.add(self.memory[self.instruction_pointer]),
-                2 => self.mul(self.memory[self.instruction_pointer]),
-                3 => self.input(),
-                4 => self.output(),
-                5 => self.jump_if_true(),
-                6 => self.jump_if_false(),
-                7 => self.less_than(),
-                8 => self.equals(),
-                99 => {
-                    break;
-                }
-                _ => {
-                    println!("Exception! {}", self.memory[self.instruction_pointer]);
-                    break;
-                }
-            }
-        }
-        self.memory.clone()
-    }
+enum MachineState {
+    Output,
+    Finished,
+    Error,
 }
