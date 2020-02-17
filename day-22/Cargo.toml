@@ -1,0 +1,10 @@
+[package]
+name = "day-22"
+version = "0.1.0"
+authors = []
+edition = "2018"
+
+
+[dependencies.im]
+version = "14.2.0"
+features = ["pool"]
